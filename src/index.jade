@@ -1,0 +1,16 @@
+html
+  head
+    meta(charset="utf-8")
+    title LotteryCalculator
+    style.
+      table, td { border: 1px solid black; }
+  body
+    input#search-input(placeholder="Search")
+    #content
+      | Loading...
+    script(src="../vendor/sugar.min.js")
+    script(src="./data.js")
+    script(src="./lib.js")
+    script(src="./index.js")
+    script.
+      render({})
