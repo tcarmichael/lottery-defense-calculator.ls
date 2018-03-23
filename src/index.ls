@@ -26,7 +26,7 @@ merge = !->
 find-unit = ->
   ALL-UNITS.find name: it
 
-function build-unit-inputs($el, {name, made}:unit, state)
+function build-unit-inputs({name, made}:unit, state)
   $els =
     with el 'span'
       ..inner-HTML = '&#8505;' # info
@@ -44,8 +44,10 @@ function build-unit-inputs($el, {name, made}:unit, state)
           merge unit
           render state
 
+  $wrapper = el \div
   for $els
-    $el.append-child .. if ..
+    $wrapper.append-child .. if ..
+  $wrapper
 
 function build-unit-table(state)
   is-active = -> not state.search or it.to-lower-case!includes state.search.to-lower-case!
@@ -56,10 +58,16 @@ function build-unit-table(state)
     for let {name}:unit in units
       cnt = if bank[name] > 0 then bank[name] else ""
 
+      icon = unit-icon(unit)
+      icon.onclick = !->
+        add-unit name
+        render state
+
       line.append-child <| el 'td'
-        ..inner-HTML = "#name #cnt"
         ..style.background-color = RARITIES[color] if is-active name
-        build-unit-inputs .., unit, state
+        ..append-child icon
+        ..append-child el(\span text: cnt)
+        ..append-child build-unit-inputs unit, state
     container.append-child line
   container
 
@@ -73,6 +81,13 @@ function build-search-field(state)
       render {...state, search: ..value}
       false
 
+function unit-icon(unit)
+  with el 'img'
+    image-name = unit.image-name || name
+    ..src = "../images/#{normalize-name image-name}.png"
+    ..alt = unit.name
+    ..class-list.add 'unit-icon'
+
 function build-info({info-mode: name}:state)
   return unless name
   $el = el 'div'
@@ -81,9 +96,7 @@ function build-info({info-mode: name}:state)
   $els =
     with el 'h1'
       ..inner-HTML = name
-    with el 'img'
-      image-name = unit.image-name || name
-      ..src = "../images/#{normalize-name image-name}.png"
+    unit-icon unit
     if unit.made
       with el 'div'
         $title = el 'span' text: 'Made from:'
@@ -97,7 +110,7 @@ function build-info({info-mode: name}:state)
             * cnt > 1 and "(x#cnt)"
             * " (got #that)" if bank[made-name]
           $made-el = el 'li' text: made-desc * ' '
-          build-unit-inputs $made-el, unit-made, state 
+          $made-el.append-child build-unit-inputs(unit-made, state)
           $list.append-child $made-el
         ..append-child $list
 
