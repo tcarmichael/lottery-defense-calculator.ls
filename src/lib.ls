@@ -3,6 +3,11 @@ Sugar.extend true
 set-prop = (el, k, v) !-> switch
 | k in <[content text]>
   el.inner-HTML = v
+| k is \class
+  el.class-list.add v
+| k is \classes
+  for v
+    el.class-list.add ..
 | _
   el[k] = v
 
@@ -14,8 +19,17 @@ el = (tag, props) ->
   $el
 
 normalize-name = ->
-  it
-    .replace ' ' '-'
-    .to-lower-case!
+  it.replace ' ' '-' .to-lower-case!
 
-export {el, normalize-name}
+prepend-child = (container, el) ->
+  if container.firstChild
+    container.insertBefore el, that
+  else
+    container.append-child el
+
+append-all = (el, els) ->
+  for els
+    el.append-child .. if ..
+  el
+
+export {el, normalize-name, prepend-child, append-all}

@@ -26,7 +26,14 @@ merge = !->
 find-unit = ->
   ALL-UNITS.find name: it
 
-function build-unit-inputs({name, made}:unit, state)
+function build-merge-button(state, unit)
+  with el 'span'
+    ..inner-HTML = '&#1421;'
+    ..onclick = ->
+      merge unit
+      render state
+
+function build-unit-inputs(state, {name, made}:unit)
   $els =
     with el 'span'
       ..inner-HTML = '&#8505;' # info
@@ -38,16 +45,8 @@ function build-unit-inputs({name, made}:unit, state)
         add-unit name
         render state
     if made and has-units made
-      with el 'span'
-        ..inner-HTML = '&#1421;'
-        ..onclick = ->
-          merge unit
-          render state
-
-  $wrapper = el \div
-  for $els
-    $wrapper.append-child .. if ..
-  $wrapper
+      build-merge-button(state, unit)
+  append-all el(\div), $els
 
 function build-unit-table(state)
   is-active = -> not state.search or it.to-lower-case!includes state.search.to-lower-case!
@@ -67,7 +66,7 @@ function build-unit-table(state)
         ..style.background-color = RARITIES[color] if is-active name
         ..append-child icon
         ..append-child el(\span text: cnt)
-        ..append-child build-unit-inputs unit, state
+        ..append-child build-unit-inputs state, unit
     container.append-child line
   container
 
@@ -81,23 +80,34 @@ function build-search-field(state)
       render {...state, search: ..value}
       false
 
-function unit-icon(unit)
+function unit-icon(unit, given-opts = {})
+  opts = {size: \big} <<< given-opts
+
   with el 'img'
     image-name = unit.image-name || name
     ..src = "../images/#{normalize-name image-name}.png"
     ..alt = unit.name
-    ..class-list.add 'unit-icon'
+    ..class-list.add "unit-icon-#{opts.size}"
 
 function build-info({info-mode: name}:state)
   return unless name
   $el = el 'div'
   unit = find-unit name
   return unless unit
+
+  $header = el \div
+    ..append-child unit-icon unit # build icon
+    ..append-child <| el 'h1' do # build name
+      text: name
+      class: 'inline-title'
+
   $els =
-    with el 'h1'
-      ..inner-HTML = name
-    unit-icon unit
-    if unit.made
+    $header
+
+    if has-units unit.made
+      build-merge-button(state, unit)
+
+    if unit.made # build unit recipe
       with el 'div'
         $title = el 'span' text: 'Made from:'
         ..append-child $title
@@ -105,18 +115,21 @@ function build-info({info-mode: name}:state)
         $list = el 'ul'
         for made-name, cnt of unit.made
           unit-made = find-unit made-name
-          made-desc =
+
+          made-desc = # the description for each recipe
             * made-name
             * cnt > 1 and "(x#cnt)"
             * " (got #that)" if bank[made-name]
+
           $made-el = el 'li' text: made-desc * ' '
-          $made-el.append-child build-unit-inputs(unit-made, state)
+          prepend-child $made-el, unit-icon(unit, size: \small) # prepend icon
+          $made-el.append-child build-unit-inputs(state, unit-made)
+
           $list.append-child $made-el
+
         ..append-child $list
 
-  for $els
-    $el.append-child .. if ..
-  $el
+  append-all $el, $els
 
 function render(state)
   $search-field = build-search-field state
